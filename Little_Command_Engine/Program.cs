@@ -71,7 +71,7 @@ namespace Example.MainProgram
 
                 if (messageText == null || messageText.Length <= 0) return;
 
-                cmd = new Command(messageText, 3);
+                cmd = new Command(messageText, 3, new Type[] { typeof(int), typeof(int), typeof(int)});
                 cmd.onError = OnCommandError;
 
                 if (engine.CheckCommand("/test", cmd)) 

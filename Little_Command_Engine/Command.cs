@@ -34,8 +34,9 @@ namespace CommandCore
 
         //Constuctor 
         //Конструктор
-        void DefaultInit(string cmd)
+        void DefaultInit(string cmd, Type[] types)
         {
+
             //Split the command 
             //Разделяем комманду
             string[] cmdSplitted = cmd.Split(" ");
@@ -63,7 +64,10 @@ namespace CommandCore
                     stringArgs.Add(cmdSplitted[i]);
                 }
             }
-
+            if (types.Length < needArgumentsLength)
+            {
+                AddError($"Длина типов меньше необходимого {needArgumentsLength}");
+            }
 
             //Set public lengths (command's length, arguments'es length)
             //Назначает публичные переменные длинны команды и длинны аргументов
@@ -79,11 +83,24 @@ namespace CommandCore
             {
                 if (i < intArgs.Count)
                 {
-                    Args.Add(intArgs[i]);
+                    if (types[i] == 0.GetType()) { 
+                        Args.Add(intArgs[i]);
+                    }
+                    else
+                    {
+                        AddError("Тип аргумента не совпадает с нужным типом");
+                    }
                 }
                 if (i < stringArgs.Count)
                 {
-                    Args.Add(stringArgs[i]);
+                    if (types[i] == "".GetType())
+                    {
+                        Args.Add(stringArgs[i]);
+                    }
+                    else
+                    {
+                        AddError("Тип аргумента не совпадает с нужным типом");
+                    }
                 }
             }
 
@@ -120,19 +137,39 @@ namespace CommandCore
             NewErrors.Add(error);
             onError(error);
         }
-
-        public Command(string cmd)
+        private void AddFatalError(string text)
         {
-            DefaultInit(cmd);
+            Error error = new FatalError(text);
+            AllErrors.Add(error);
+            NewErrors.Add(error);
+            onError(error);
+        }
+        public Command(string cmd, Type[] types)
+        {
+            DefaultInit(cmd, types);
         }
 
-        //Constructor 2
-        //Конструктор 2
-        public Command(string cmd, int needArgumentsLength)
+        //Constructor 3
+        //Конструктор 3
+        public Command(string cmd, int needArgumentsLength, Type[] types)
         {
             this.needArgumentsLength = needArgumentsLength;
 
-            DefaultInit(cmd);
+            DefaultInit(cmd, types);
+        }
+        public Command(string cmd, List<Type> types)
+        {
+            DefaultInit(cmd, types.ToArray());
+
+        }
+
+        //Constructor 4
+        //Конструктор 4
+        public Command(string cmd, int needArgumentsLength, List<Type> types)
+        {
+            this.needArgumentsLength = needArgumentsLength;
+
+            DefaultInit(cmd, types.ToArray());
         }
 
         //Get value from "intArgs"
@@ -170,7 +207,7 @@ namespace CommandCore
             }
             else
             {
-                return null;
+                return " ";
             }
         }
 
@@ -281,6 +318,17 @@ namespace CommandCore
         public void WriteError()
         {
             Console.WriteLine(errorText);
+        }
+    }
+    public class FatalError : Error
+    {
+        public FatalError(string errorText) : base(errorText)
+        {
+            ThrowError();
+        }
+        public void ThrowError()
+        {
+            throw new ApplicationException(errorText);
         }
     }
 }
