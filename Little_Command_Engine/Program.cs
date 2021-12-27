@@ -9,8 +9,6 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Example.KeyBoards;
 using CommandCore;
-
-
 //Example NameSpace
 
 namespace Example.MainProgram
@@ -23,11 +21,11 @@ namespace Example.MainProgram
 
         public static TelegramBotClient botClient;
 
-        private static Command cmd = new Command("");
+        private static Command cmd;
+        private static long chatId;
 
         static async Task Main()
         {
-
             CommandEngine engine = new CommandEngine();
             botClient = new TelegramBotClient(token);
             using var cts = new CancellationTokenSource();
@@ -56,11 +54,16 @@ namespace Example.MainProgram
             {
                 var msg = update.Message;
 
-                var chatId = msg.Chat.Id;
+                chatId = msg.Chat.Id;
 
                 if (update.Type != UpdateType.Message)
-                    if (update.Type != UpdateType.EditedMessage) return;
-                if (update.Message.Type != MessageType.Text) return;
+                {
+                    return;
+                }
+                if (update.Message.Type != MessageType.Text)
+                {
+                    return;
+                }
 
 
 
@@ -68,16 +71,18 @@ namespace Example.MainProgram
 
                 if (messageText == null || messageText.Length <= 0) return;
 
-                cmd = new Command(messageText,3) ;
+                cmd = new Command(messageText, 3);
+                cmd.onError = OnCommandError;
 
-                if (engine.CheckCommand("/test", cmd) && !CheckCommandError(cmd)) {
-                    
-                    for (int i = 0; i < cmd.argumentsLength; i++)
+                if (engine.CheckCommand("/test", cmd)) 
+                {
+                    if (!cmd.CheckErrors())
                     {
-                        await botClient.SendTextMessageAsync(chatId,cmd.GetValueFromArgs(i).ToString());
-
+                        for (int i = 0; i < cmd.argumentsLength; i++)
+                        {
+                            await botClient.SendTextMessageAsync(chatId, cmd.GetValueFromArgs(i).ToString());
+                        }
                     }
-
                 }
 
 /*                
@@ -116,28 +121,11 @@ namespace Example.MainProgram
                 return Task.CompletedTask;
             }
         }
-        private static bool CheckCommandError(Command cmd)
-        {
-            if (cmd.GetNewErrors(false).Length != 0)
-            {
-                OnCommandError(cmd.GetNewErrors(false));
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        private static void OnCommandError(Error[] errors)
-        {
-            for (int i = 0; i < errors.Length; i++)
-            {
-                errors[i].WriteError();
-            }
-        }
         private static void OnCommandError(Error error)
         {
             error.WriteError();
+
+            botClient.SendTextMessageAsync(chatId, error.errorText);
         }
     }
 }
