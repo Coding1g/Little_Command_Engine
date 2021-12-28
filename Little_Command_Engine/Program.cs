@@ -130,11 +130,10 @@ namespace Example.MainProgram
         private static void OnCommandError(Error error)
         {
             error.WriteError();
-            
-            if (error.GetType() != typeof(DevelopError))
-            {
-                botClient.SendTextMessageAsync(chatId, error.errorText);
-            }
+        }
+        private static void OnCommandDevelopError(Error error)
+        {
+            error.WriteError();
         }
     }
 }

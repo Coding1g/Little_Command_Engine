@@ -26,6 +26,12 @@ namespace CommandCore
         private List<Error> NewErrors = new List<Error>();
 
         public Action<Error> onError = OnError;
+        public Action<Error> onDevelopError = OnDevelopError;
+
+        private static void OnDevelopError(Error obj)
+        {
+            Console.WriteLine("onDevelopError is null");
+        }
 
         private static void OnError(Error error)
         {
@@ -126,7 +132,7 @@ namespace CommandCore
             Error error = new DevelopError(text);
             AllErrors.Add(error);
             NewErrors.Add(error);
-            onError(error);
+            onDevelopError(error);
         }
         public Command(string cmd)
         {
