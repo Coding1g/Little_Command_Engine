@@ -43,7 +43,6 @@ namespace Example.MainProgram
 
             var me = await botClient.GetMeAsync();
 
-
             Console.WriteLine($"Бот {me.Username}, запущен на {Environment.MachineName}, на пользователе {Environment.UserName}");
 
             Console.ReadLine();
@@ -76,7 +75,7 @@ namespace Example.MainProgram
 
                 if (engine.CheckCommand("/test", cmd))
                 {
-                    if (engine.CheckArguments(cmd, new Type[] { typeof(int), typeof(int), typeof(bool) }) && !cmd.CheckErrors())
+                    if (!engine.CheckErrors(cmd, new Type[] { typeof(int), typeof(int), typeof(bool) }))
                     {
                         for (int i = 0; i < cmd.argumentsLength; i++)
                         {
@@ -88,6 +87,20 @@ namespace Example.MainProgram
                             {
                                 await botClient.SendTextMessageAsync(chatId, ((int)cmd.GetValueFromArgs(i) + 5).ToString());
                             }
+
+                        }
+                        for (int i = 0; i < cmd.intArgs.Count; i++)
+                        {
+                            Console.WriteLine(cmd.intArgs[i]);
+                        }
+                        for (int i = 0; i < cmd.stringArgs.Count; i++)
+                        {
+                            Console.WriteLine(cmd.stringArgs[i]);
+
+                        }
+                        for (int i = 0; i < cmd.booleanArgs.Count; i++)
+                        {
+                            Console.WriteLine(cmd.booleanArgs[i]);
 
                         }
                     }

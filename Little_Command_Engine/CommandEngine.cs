@@ -27,21 +27,24 @@ namespace CommandCore
                 return false;
             }
         }
-        public bool ChecErrors(Command cmd)
+        public bool CheckErrors(Command cmd, Type[] types)
         {
-            return cmd.CheckErrors();
+            bool isError;
+            CheckArguments(cmd, types);
+            isError = cmd.CheckErrors();
+            return isError;
         }
-        public bool CheckArguments(Command cmd, Type[] types)
+        public void CheckArguments(Command cmd, Type[] types)
         {
             if (types.Length < cmd.Args.Count || types.Length < cmd.needArgumentsLength)
             {
                 cmd.AddDevelopError("Слишком маленький список типов");
-                return false;
+                return;
             }
             else if (types.Length > cmd.Args.Count || types.Length > cmd.needArgumentsLength)
             {
                 cmd.AddDevelopError("Слишком большой список типов");
-                return false;
+                return;
             }
             for (int i = 0; i < cmd.Args.Count; i++)
             {
@@ -51,25 +54,43 @@ namespace CommandCore
                     {
                         if (cmd.Args[i].GetType() == typeof(int))
                         {
-                            if ((int)cmd.Args[i] == 0)
+                            if (cmd.Args[i].ToString() == "0")
                             {
                                 cmd.Args[i] = false;
-                                cmd.intArgs.Add(0);
-                                continue;
+
+                                if (cmd.booleanArgs.Count - 1 >= i)
+                                {
+                                    cmd.booleanArgs[i] = false;
+                                }
+                                else
+                                {
+                                    cmd.booleanArgs.Add(false);
+                                }
+                                cmd.intArgs.RemoveAt(i);
+
                             }
-                            else if((int)cmd.Args[i] == 1)
+                            if (cmd.Args[i].ToString() == "1")
                             {
                                 cmd.Args[i] = true;
-                                cmd.booleanArgs.Add(true);
-                                continue;
+                                if (cmd.booleanArgs.Count - 1 >= i)
+                                {
+                                    cmd.booleanArgs[i] = true;
+                                }
+                                else
+                                {
+                                    cmd.booleanArgs.Add(true);
+                                }
+                                cmd.intArgs.RemoveAt(i);
+
                             }
                         }
                     }
-                    cmd.AddError("Не правильный тип аргумента");
-                    return false;
+                    else
+                    {
+                        cmd.AddError("Не правильный тип аргумента");
+                    }
                 }
             }
-            return true;
         }
     }
 

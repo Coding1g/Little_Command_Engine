@@ -104,20 +104,24 @@ namespace CommandCore
             //Полный список аргументов включающий в себя "intArgs" и "stringArgs"
             for (int i = 0; i < Args.Count; i++)
             {
-                int args = 0;
+                int integerArg = 0;
+                bool boolArg;
 
-                if (int.TryParse(Args[i].ToString(), out args))
-                {
-                    intArgs.Add(args);
-                }
-                else if (!int.TryParse(Args[i].ToString(), out args))
-                {
-                    stringArgs.Add(Args[i].ToString());
-                }
-                else if (Args[i].GetType() == typeof(bool))
+                if (bool.TryParse(Args[i].ToString(), out boolArg))
                 {
                     booleanArgs.Add((bool)Args[i]);
                 }
+                
+                else if (int.TryParse(Args[i].ToString(), out integerArg))
+                {
+                    intArgs.Add(integerArg);
+                }
+
+                else if (Args[i].GetType() == typeof(string))
+                {
+                    stringArgs.Add(Args[i].ToString());
+                }
+
             }
         }
 
