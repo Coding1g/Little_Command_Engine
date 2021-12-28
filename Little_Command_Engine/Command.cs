@@ -8,6 +8,8 @@ namespace CommandCore
         //Values
         //Переменные
 
+        internal static Command cmd;
+
         public List<int> intArgs = new List<int>();
 
         public List<string> stringArgs = new List<string>();
@@ -25,13 +27,7 @@ namespace CommandCore
         private List<Error> AllErrors = new List<Error>();
         private List<Error> NewErrors = new List<Error>();
 
-        public Action<Error> onError = OnError;
-
-        private static void OnError(Error error)
-        {
-            Console.WriteLine("onError is null");
-        }
-
+        public Action<Error> onError;
         //Constuctor 
         //Конструктор
         void DefaultInit(string cmd, Type[] types)
@@ -41,7 +37,6 @@ namespace CommandCore
             //Разделяем комманду
             string[] cmdSplitted = cmd.Split(" ");
 
-            //Set start command part
             //Задаем начало комманды
             cmdStart = cmdSplitted[0];
 
@@ -49,6 +44,11 @@ namespace CommandCore
             //Списки аргументов
             List<string> stringArgs = new List<string>();
             List<int> intArgs = new List<int>();
+
+            //Set public lengths (command's length, arguments'es length)
+            //Назначает публичные переменные длинны команды и длинны аргументов
+            commandLength = cmdSplitted.Length;
+            argumentsLength = cmdSplitted.Length - 1;
 
             //Try parse to int and add to need list
             //Пытаемся ковертировать строку в int и записываем в нужный список 
@@ -77,6 +77,7 @@ namespace CommandCore
             this.stringArgs = stringArgs;
             this.intArgs = intArgs;
 
+
             //Full list arguments which have "intArgs" and "stringArgs"
             //Полный список аргументов включающий в себя "intArgs" и "stringArgs"
             for (int i = 0; i < intArgs.Count + stringArgs.Count; i++)
@@ -104,28 +105,18 @@ namespace CommandCore
                 }
             }
 
-        }
-
-        //Check errors
-        public bool CheckErrors()
-        {
             //Check args length
             //Проверяем длинну аргументов
             if (argumentsLength < needArgumentsLength)
             {
                 AddError($"Добавьте {needArgumentsLength - argumentsLength} аргументов");
-
             }
-            else if (argumentsLength > needArgumentsLength)
+            if (argumentsLength > needArgumentsLength)
             {
                 AddError($"Удалите {argumentsLength - needArgumentsLength} аргументов");
-
             }
-            else
-            {
-                return false;
-            }
-            return true;
+            this.stringArgs = stringArgs;
+            this.intArgs = intArgs;
         }
 
         //Add new error into lists of errors
@@ -134,7 +125,6 @@ namespace CommandCore
         {
             Error error = new Error(text);
             AllErrors.Add(error);
-            NewErrors.Add(error);
             onError(error);
         }
         private void AddFatalError(string text)
@@ -142,6 +132,7 @@ namespace CommandCore
             Error error = new FatalError(text);
             AllErrors.Add(error);
             NewErrors.Add(error);
+            onError(error);
             onError(error);
         }
         public Command(string cmd, Type[] types)
