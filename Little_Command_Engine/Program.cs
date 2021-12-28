@@ -72,21 +72,23 @@ namespace Example.MainProgram
 
                 cmd = new Command(messageText, 3);
                 cmd.onError = OnCommandError;
+                cmd.onDevelopError = OnCommandDevelopError;
 
                 if (engine.CheckCommand("/test", cmd))
                 {
-                    if (!cmd.CheckErrors())
+                    if (engine.CheckArguments(cmd, new Type[] { typeof(int), typeof(int), typeof(bool) }) && !cmd.CheckErrors())
                     {
                         for (int i = 0; i < cmd.argumentsLength; i++)
                         {
-                            if (cmd.Args[i].GetType() == typeof(int))
+                            if (cmd.Args[i].GetType() == typeof(bool))
                             {
-                                await botClient.SendTextMessageAsync(chatId, cmd.GetValueFromArgs(i).ToString());
+                                await botClient.SendTextMessageAsync(chatId, cmd.Args[i].ToString());
                             }
                             else
                             {
-                                cmd.AddDevelopError("Не тот тип передаваемых аргументов"); 
+                                await botClient.SendTextMessageAsync(chatId, ((int)cmd.GetValueFromArgs(i) + 5).ToString());
                             }
+
                         }
                     }
                 }
@@ -129,11 +131,13 @@ namespace Example.MainProgram
         }
         private static void OnCommandError(Error error)
         {
-            error.WriteError();
+            error.WriteError("Command error:");
+
+            error.SendBotMessage(botClient, chatId);
         }
         private static void OnCommandDevelopError(Error error)
         {
-            error.WriteError();
+            error.WriteError("Develop command error:");
         }
     }
 }

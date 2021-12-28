@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace CommandCore
 {
@@ -11,6 +14,8 @@ namespace CommandCore
         public List<int> intArgs = new List<int>();
 
         public List<string> stringArgs = new List<string>();
+
+        public List<bool> booleanArgs = new List<bool>();
 
         public List<object> Args = new List<object>();
 
@@ -67,7 +72,22 @@ namespace CommandCore
                 }
                 else
                 {
-                    Args.Add(cmdSplitted[i]);
+                    if (cmdSplitted[i].ToLower() == "true")
+                    {
+                        Args.Add(true);
+
+                        booleanArgs.Add(true);
+                    }
+                    else if (cmdSplitted[i].ToLower() == "false")
+                    {
+                        Args.Add(false);
+
+                        booleanArgs.Add(false);
+                    }
+                    else
+                    {
+                        Args.Add(cmdSplitted[i]);
+                    }
                 }
             }
 
@@ -90,9 +110,13 @@ namespace CommandCore
                 {
                     intArgs.Add(args);
                 }
-                else
+                else if (!int.TryParse(Args[i].ToString(), out args))
                 {
                     stringArgs.Add(Args[i].ToString());
+                }
+                else if (Args[i].GetType() == typeof(bool))
+                {
+                    booleanArgs.Add((bool)Args[i]);
                 }
             }
         }
@@ -294,6 +318,26 @@ namespace CommandCore
         public void WriteError()
         {
             Console.WriteLine(errorText);
+        }
+        public void WriteError(string addStart)
+        {
+            Console.WriteLine(addStart + " " + errorText);
+        }
+        public void WriteError(string addStart, string addEnd)
+        {
+            Console.WriteLine(addStart + " " + errorText + " " + addEnd);
+        }
+        public async Task SendBotMessage(TelegramBotClient client, long chatId)
+        {
+            await client.SendTextMessageAsync(chatId, errorText);
+        }
+        public async Task SendBotMessage(TelegramBotClient client, long chatId, string addStart, string addEnd)
+        {
+            await client.SendTextMessageAsync(chatId, addStart + " " + errorText + addEnd);
+        }
+        public async Task SendBotMessage(TelegramBotClient client, long chatId, string addStart)
+        {
+            await client.SendTextMessageAsync(chatId, addStart + " " + errorText);
         }
     }
     public class DevelopError : Error
