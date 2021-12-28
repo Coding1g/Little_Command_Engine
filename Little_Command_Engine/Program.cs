@@ -9,8 +9,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Example.KeyBoards;
 using CommandCore;
-
-
+using System.Collections.Generic;
 //Example NameSpace
 
 namespace Example.MainProgram
@@ -23,18 +22,18 @@ namespace Example.MainProgram
 
         public static TelegramBotClient botClient;
 
-        private static Command cmd = new Command("");
+        private static Command cmd;
+        private static long chatId;
 
         static async Task Main()
         {
-
             CommandEngine engine = new CommandEngine();
             botClient = new TelegramBotClient(token);
             using var cts = new CancellationTokenSource();
 
             var receiverOptions = new ReceiverOptions
             {
-                AllowedUpdates = { } 
+                AllowedUpdates = { }
             };
             botClient.StartReceiving(
                 HandleUpdateAsync,
@@ -56,13 +55,16 @@ namespace Example.MainProgram
             {
                 var msg = update.Message;
 
-                var chatId = msg.Chat.Id;
+                chatId = msg.Chat.Id;
 
                 if (update.Type != UpdateType.Message)
-                    if (update.Type != UpdateType.EditedMessage) return;
-                if (update.Message.Type != MessageType.Text) return;
-
-
+                {
+                    return;
+                }
+                if (update.Message.Type != MessageType.Text)
+                {
+                    return;
+                }
 
                 var messageText = msg.Text;
 
@@ -71,36 +73,44 @@ namespace Example.MainProgram
                 cmd = new Command(messageText, 3);
                 cmd.onError = OnCommandError;
 
-                if (engine.CheckCommand("/test", cmd) && !CheckCommandError(cmd)) {
-                    
-                    for (int i = 0; i < cmd.argumentsLength; i++)
+                if (engine.CheckCommand("/test", cmd))
+                {
+                    if (!cmd.CheckErrors())
                     {
-                        await botClient.SendTextMessageAsync(chatId,cmd.GetValueFromArgs(i).ToString());
-
+                        for (int i = 0; i < cmd.argumentsLength; i++)
+                        {
+                            if (cmd.Args[i].GetType() == typeof(int))
+                            {
+                                await botClient.SendTextMessageAsync(chatId, cmd.GetValueFromArgs(i).ToString());
+                            }
+                            else
+                            {
+                                cmd.AddDevelopError("Не тот тип передаваемых аргументов"); 
+                            }
+                        }
                     }
-
                 }
 
-/*                
-                if (messageText.ToLower() == "стикер")
-                {
-                    var sticker = await botClient.SendStickerAsync(chatId: msg.Chat.Id, "https://tlgrm.ru/_/stickers/cc6/84d/cc684d05-d7c5-4749-9a88-b31756e5169a/1.webp", replyToMessageId: msg.MessageId, replyMarkup: KeyBoard.testKeyboard);
-                }
-                if (messageText.ToLower() == "/клавиатура") {
-                    var keyboard = await botClient.SendTextMessageAsync(chatId, "Выберете действие", replyMarkup: KeyBoard.testKeyboard);
-                }
+                /*                
+                                if (messageText.ToLower() == "стикер")
+                                {
+                                    var sticker = await botClient.SendStickerAsync(chatId: msg.Chat.Id, "https://tlgrm.ru/_/stickers/cc6/84d/cc684d05-d7c5-4749-9a88-b31756e5169a/1.webp", replyToMessageId: msg.MessageId, replyMarkup: KeyBoard.testKeyboard);
+                                }
+                                if (messageText.ToLower() == "/клавиатура") {
+                                    var keyboard = await botClient.SendTextMessageAsync(chatId, "Выберете действие", replyMarkup: KeyBoard.testKeyboard);
+                                }
 
-                if (messageText.ToLower() == "сообщение")
-                {
-                    var message = await botClient.SendTextMessageAsync(chatId, "Вот ваше сообщение" , replyMarkup: KeyBoard.testKeyboard);
-                }
-                if (messageText.ToLower() == "музыка")
-                {
-                    var message = await botClient.SendAudioAsync(
-                        chatId: chatId,
-                        audio: "https://github.com/TelegramBots/book/raw/master/src/docs/audio-guitar.mp3"
-                     );
-                }*/
+                                if (messageText.ToLower() == "сообщение")
+                                {
+                                    var message = await botClient.SendTextMessageAsync(chatId, "Вот ваше сообщение" , replyMarkup: KeyBoard.testKeyboard);
+                                }
+                                if (messageText.ToLower() == "музыка")
+                                {
+                                    var message = await botClient.SendAudioAsync(
+                                        chatId: chatId,
+                                        audio: "https://github.com/TelegramBots/book/raw/master/src/docs/audio-guitar.mp3"
+                                     );
+                                }*/
 
             }
 
@@ -117,28 +127,14 @@ namespace Example.MainProgram
                 return Task.CompletedTask;
             }
         }
-        private static bool CheckCommandError(Command cmd)
-        {
-            if (cmd.GetNewErrors(false).Length != 0)
-            {
-                OnCommandError(cmd.GetNewErrors(false));
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        private static void OnCommandError(Error[] errors)
-        {
-            for (int i = 0; i < errors.Length; i++)
-            {
-                errors[i].WriteError();
-            }
-        }
         private static void OnCommandError(Error error)
         {
             error.WriteError();
+            
+            if (error.GetType() != typeof(DevelopError))
+            {
+                botClient.SendTextMessageAsync(chatId, error.errorText);
+            }
         }
     }
 }

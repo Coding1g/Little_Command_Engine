@@ -4,11 +4,9 @@ using System.Collections.Generic;
 namespace CommandCore
 {
     public class Command
-    { 
+    {
         //Values
         //Переменные
-
-        internal static Command cmd;
 
         public List<int> intArgs = new List<int>();
 
@@ -27,16 +25,22 @@ namespace CommandCore
         private List<Error> AllErrors = new List<Error>();
         private List<Error> NewErrors = new List<Error>();
 
-        public Action<Error> onError;
+        public Action<Error> onError = OnError;
+
+        private static void OnError(Error error)
+        {
+            Console.WriteLine("onError is null");
+        }
+
         //Constuctor 
         //Конструктор
-        void DefaultInit(string cmd, Type[] types)
+        void DefaultInit(string cmd)
         {
-
             //Split the command 
             //Разделяем комманду
             string[] cmdSplitted = cmd.Split(" ");
 
+            //Set start command part
             //Задаем начало комманды
             cmdStart = cmdSplitted[0];
 
@@ -45,29 +49,22 @@ namespace CommandCore
             List<string> stringArgs = new List<string>();
             List<int> intArgs = new List<int>();
 
-            //Set public lengths (command's length, arguments'es length)
-            //Назначает публичные переменные длинны команды и длинны аргументов
-            commandLength = cmdSplitted.Length;
-            argumentsLength = cmdSplitted.Length - 1;
-
             //Try parse to int and add to need list
             //Пытаемся ковертировать строку в int и записываем в нужный список 
             for (int i = 1; i < cmdSplitted.Length; i++)
             {
                 int parseInt;
+
                 if (int.TryParse(cmdSplitted[i], out parseInt))
                 {
-                    intArgs.Add(parseInt);
+                    Args.Add(parseInt);
                 }
-                else if (!int.TryParse(cmdSplitted[i], out parseInt))
+                else
                 {
-                    stringArgs.Add(cmdSplitted[i]);
+                    Args.Add(cmdSplitted[i]);
                 }
             }
-            if (types.Length < needArgumentsLength)
-            {
-                AddError($"Длина типов меньше необходимого {needArgumentsLength}");
-            }
+
 
             //Set public lengths (command's length, arguments'es length)
             //Назначает публичные переменные длинны команды и длинны аргументов
@@ -77,90 +74,72 @@ namespace CommandCore
             this.stringArgs = stringArgs;
             this.intArgs = intArgs;
 
-
             //Full list arguments which have "intArgs" and "stringArgs"
             //Полный список аргументов включающий в себя "intArgs" и "stringArgs"
-            for (int i = 0; i < intArgs.Count + stringArgs.Count; i++)
+            for (int i = 0; i < Args.Count; i++)
             {
-                if (i < intArgs.Count)
+                int args = 0;
+
+                if (int.TryParse(Args[i].ToString(), out args))
                 {
-                    if (types[i] == 0.GetType()) { 
-                        Args.Add(intArgs[i]);
-                    }
-                    else
-                    {
-                        AddError("Тип аргумента не совпадает с нужным типом");
-                    }
+                    intArgs.Add(args);
                 }
-                if (i < stringArgs.Count)
+                else
                 {
-                    if (types[i] == "".GetType())
-                    {
-                        Args.Add(stringArgs[i]);
-                    }
-                    else
-                    {
-                        AddError("Тип аргумента не совпадает с нужным типом");
-                    }
+                    stringArgs.Add(Args[i].ToString());
                 }
             }
+        }
 
+        //Function for check errors
+        //Функция для проверки оишбок
+        public bool CheckErrors()
+        {
             //Check args length
             //Проверяем длинну аргументов
             if (argumentsLength < needArgumentsLength)
             {
                 AddError($"Добавьте {needArgumentsLength - argumentsLength} аргументов");
             }
-            if (argumentsLength > needArgumentsLength)
+            else if (argumentsLength > needArgumentsLength)
             {
                 AddError($"Удалите {argumentsLength - needArgumentsLength} аргументов");
             }
-            this.stringArgs = stringArgs;
-            this.intArgs = intArgs;
+            else
+            {
+                return false;
+            }
+            return true;
         }
 
         //Add new error into lists of errors
         //Добавить новую ошибку в списки с ошибками
-        private void AddError(string text)
+        public void AddError(string text)
         {
             Error error = new Error(text);
             AllErrors.Add(error);
+            NewErrors.Add(error);
             onError(error);
         }
-        private void AddFatalError(string text)
+        public void AddDevelopError(string text)
         {
-            Error error = new FatalError(text);
+            Error error = new DevelopError(text);
             AllErrors.Add(error);
             NewErrors.Add(error);
             onError(error);
-            onError(error);
         }
-        public Command(string cmd, Type[] types)
+        public Command(string cmd)
         {
-            DefaultInit(cmd, types);
+            DefaultInit(cmd);
         }
 
-        //Constructor 3
-        //Конструктор 3
-        public Command(string cmd, int needArgumentsLength, Type[] types)
-        {
-            this.needArgumentsLength = needArgumentsLength;
-
-            DefaultInit(cmd, types);
-        }
-        public Command(string cmd, List<Type> types)
-        {
-            DefaultInit(cmd, types.ToArray());
-
-        }
-
-        //Constructor 4
-        //Конструктор 4
-        public Command(string cmd, int needArgumentsLength, List<Type> types)
+        //Constructor 2
+        //Конструктор 2
+        public Command(string cmd, int needArgumentsLength)
         {
             this.needArgumentsLength = needArgumentsLength;
 
-            DefaultInit(cmd, types.ToArray());
+            DefaultInit(cmd);
         }
 
         //Get value from "intArgs"
@@ -198,7 +177,7 @@ namespace CommandCore
             }
             else
             {
-                return " ";
+                return null;
             }
         }
 
@@ -238,7 +217,7 @@ namespace CommandCore
 
         //Get all errors from "NewErrors" of index and clean list "NewErrors" if "IsClean" == true
         //Получает все ошибки из "NewErrors" по индексу и чистит список "NewErrors" если "IsClean" == true
-        public Error GetErrorFromNewErrors(int index,bool IsClean)
+        public Error GetErrorFromNewErrors(int index, bool IsClean)
         {
             Error error;
             if (NewErrors.Count == index)
@@ -276,7 +255,7 @@ namespace CommandCore
         public Error[] GetAllErrors()
         {
             Error[] errors = this.AllErrors.ToArray();
-            
+
             return errors;
         }
 
@@ -311,15 +290,11 @@ namespace CommandCore
             Console.WriteLine(errorText);
         }
     }
-    public class FatalError : Error
+    public class DevelopError : Error
     {
-        public FatalError(string errorText) : base(errorText)
+        public DevelopError(string error) : base(error)
         {
-            ThrowError();
+
         }
-        public void ThrowError()
-        {
-            throw new ApplicationException(errorText);
-        }
-    }
+    } 
 }
