@@ -52,10 +52,6 @@ namespace Example.MainProgram
 
             async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
             {
-                var msg = update.Message;
-
-                chatId = msg.Chat.Id;
-
                 if (update.Type != UpdateType.Message)
                 {
                     return;
@@ -64,44 +60,53 @@ namespace Example.MainProgram
                 {
                     return;
                 }
+                var msg = update.Message;
+
+                chatId = msg.Chat.Id;
 
                 var messageText = msg.Text;
 
                 if (messageText == null || messageText.Length <= 0) return;
 
-                cmd = new Command(messageText, 3);
+                cmd = new Command(messageText, 3, new List<Type> { typeof(long), typeof(string), typeof(bool) });
                 cmd.onError = OnCommandError;
                 cmd.onDevelopError = OnCommandDevelopError;
+                cmd.OnInitializeOnErrors();
 
                 if (engine.CheckCommand("/test", cmd))
                 {
-                    if (!engine.CheckErrors(cmd, new Type[] { typeof(int), typeof(int), typeof(bool) }))
+
+                    if (engine.CheckErrors(cmd))
                     {
-                        for (int i = 0; i < cmd.argumentsLength; i++)
+                        for (int i = 0; i < cmd.Args.Count; i++)
                         {
                             if (cmd.Args[i].GetType() == typeof(bool))
                             {
-                                await botClient.SendTextMessageAsync(chatId, cmd.Args[i].ToString());
+                                await botClient.SendTextMessageAsync(chatId, cmd.GetValueFromArgs(i).ToString());
+                            }
+                            else if (cmd.Args[i].GetType() == typeof(decimal))
+                            {
+                                await botClient.SendTextMessageAsync(chatId, ((decimal)cmd.GetValueFromArgs(i) + 5).ToString());
                             }
                             else
                             {
-                                await botClient.SendTextMessageAsync(chatId, ((int)cmd.GetValueFromArgs(i) + 5).ToString());
+                                await botClient.SendTextMessageAsync(chatId, cmd.GetValueFromArgs(i).ToString());
                             }
 
-                        }
-                        for (int i = 0; i < cmd.intArgs.Count; i++)
-                        {
-                            Console.WriteLine(cmd.intArgs[i]);
                         }
                         for (int i = 0; i < cmd.stringArgs.Count; i++)
                         {
                             Console.WriteLine(cmd.stringArgs[i]);
 
                         }
+                        for (int i = 0; i < cmd.decimalArgs.Count; i++)
+                        {
+                            Console.WriteLine(cmd.decimalArgs[i]);
+
+                        }
                         for (int i = 0; i < cmd.booleanArgs.Count; i++)
                         {
                             Console.WriteLine(cmd.booleanArgs[i]);
-
                         }
                     }
                 }

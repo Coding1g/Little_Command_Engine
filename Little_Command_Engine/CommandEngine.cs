@@ -27,71 +27,38 @@ namespace CommandCore
                 return false;
             }
         }
-        public bool CheckErrors(Command cmd, Type[] types)
+        public bool CheckErrors(Command cmd)
         {
             bool isError;
-            CheckArguments(cmd, types);
-            isError = cmd.CheckErrors();
+            isError = !cmd.CheckErrors();
             return isError;
         }
-        public void CheckArguments(Command cmd, Type[] types)
-        {
-            if (types.Length < cmd.Args.Count || types.Length < cmd.needArgumentsLength)
-            {
-                cmd.AddDevelopError("Слишком маленький список типов");
-                return;
-            }
-            else if (types.Length > cmd.Args.Count || types.Length > cmd.needArgumentsLength)
-            {
-                cmd.AddDevelopError("Слишком большой список типов");
-                return;
-            }
-            for (int i = 0; i < cmd.Args.Count; i++)
-            {
-                if (cmd.Args[i].GetType() != types[i])
+        /*        public void CheckArguments(Command cmd, Type[] types)
                 {
-                    if (types[i] == typeof(bool))
+                    if (types.Length < cmd.Args.Count || types.Length < cmd.needArgumentsLength)
                     {
-                        if (cmd.Args[i].GetType() == typeof(int))
+                        cmd.AddDevelopError("Слишком маленький список типов");
+                        return;
+                    }
+                    else if (types.Length > cmd.Args.Count || types.Length > cmd.needArgumentsLength)
+                    {
+                        cmd.AddDevelopError("Слишком большой список типов");
+                        return;
+                    }
+                    for (int i = 0; i < cmd.Args.Count; i++)
+                    {
+                        if (types[i] == typeof(string))
                         {
-                            if (cmd.Args[i].ToString() == "0")
+                            if (cmd.Args[i].GetType() != typeof(string))
                             {
-                                cmd.Args[i] = false;
-
-                                if (cmd.booleanArgs.Count - 1 >= i)
-                                {
-                                    cmd.booleanArgs[i] = false;
-                                }
-                                else
-                                {
-                                    cmd.booleanArgs.Add(false);
-                                }
-                                cmd.intArgs.RemoveAt(i);
-
-                            }
-                            if (cmd.Args[i].ToString() == "1")
-                            {
-                                cmd.Args[i] = true;
-                                if (cmd.booleanArgs.Count - 1 >= i)
-                                {
-                                    cmd.booleanArgs[i] = true;
-                                }
-                                else
-                                {
-                                    cmd.booleanArgs.Add(true);
-                                }
-                                cmd.intArgs.RemoveAt(i);
-
+                                cmd.Args[i] = cmd.Args[i].ToString();
                             }
                         }
-                    }
-                    else
-                    {
-                        cmd.AddError("Не правильный тип аргумента");
-                    }
-                }
-            }
-        }
+                        else
+                        {
+                            cmd.AddError("Не правильный тип аргумента по индексу " + i);
+                        }
+                    }*/
     }
-
 }
+

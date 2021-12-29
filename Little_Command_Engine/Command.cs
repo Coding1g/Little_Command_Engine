@@ -11,11 +11,11 @@ namespace CommandCore
         //Values
         //Переменные
 
-        public List<int> intArgs = new List<int>();
-
         public List<string> stringArgs = new List<string>();
 
         public List<bool> booleanArgs = new List<bool>();
+
+        public List<decimal> decimalArgs = new List<decimal>();
 
         public List<object> Args = new List<object>();
 
@@ -33,7 +33,10 @@ namespace CommandCore
         public Action<Error> onError = OnError;
         public Action<Error> onDevelopError = OnDevelopError;
 
-        private static void OnDevelopError(Error obj)
+        private List<Type> types = new List<Type>();
+        public bool end;
+
+        private static void OnDevelopError(Error error)
         {
             Console.WriteLine("onDevelopError is null");
         }
@@ -45,7 +48,7 @@ namespace CommandCore
 
         //Constuctor 
         //Конструктор
-        void DefaultInit(string cmd)
+        void DefaultInit(string cmd, List<Type> types)
         {
             //Split the command 
             //Разделяем комманду
@@ -55,95 +58,149 @@ namespace CommandCore
             //Задаем начало комманды
             cmdStart = cmdSplitted[0];
 
-            //Lists of arguments
-            //Списки аргументов
-            List<string> stringArgs = new List<string>();
-            List<int> intArgs = new List<int>();
-
-            //Try parse to int and add to need list
-            //Пытаемся ковертировать строку в int и записываем в нужный список 
-            for (int i = 1; i < cmdSplitted.Length; i++)
-            {
-                int parseInt;
-
-                if (int.TryParse(cmdSplitted[i], out parseInt))
-                {
-                    Args.Add(parseInt);
-                }
-                else
-                {
-                    if (cmdSplitted[i].ToLower() == "true")
-                    {
-                        Args.Add(true);
-
-                        booleanArgs.Add(true);
-                    }
-                    else if (cmdSplitted[i].ToLower() == "false")
-                    {
-                        Args.Add(false);
-
-                        booleanArgs.Add(false);
-                    }
-                    else
-                    {
-                        Args.Add(cmdSplitted[i]);
-                    }
-                }
-            }
-
-
             //Set public lengths (command's length, arguments'es length)
             //Назначает публичные переменные длинны команды и длинны аргументов
             commandLength = cmdSplitted.Length;
             argumentsLength = cmdSplitted.Length - 1;
 
-            this.stringArgs = stringArgs;
-            this.intArgs = intArgs;
+            if (argumentsLength < needArgumentsLength)
+            {
+                AddError($"Слишком мало аргументов, добавьте {needArgumentsLength - argumentsLength} аргументов");
+                return;
+            }
+            else if (argumentsLength > needArgumentsLength)
+            {
+                AddError($"Слишком много аргументов, уберите {argumentsLength - needArgumentsLength} аргументов");
+                return;
+            }
 
-            //Full list arguments which have "intArgs" and "stringArgs"
-            //Полный список аргументов включающий в себя "intArgs" и "stringArgs"
+            //Try parse to int and add to need list
+            //Пытаемся ковертировать строку в int и записываем в нужный список 
+            for (int i = 1; i < cmdSplitted.Length; i++)
+            {
+                decimal parseDecimal;
+
+                for (int j = 0; j < types.Count; j++)
+                {
+                    if (types[j] == typeof(int) || types[j] == typeof(float) || types[j] == typeof(long))
+                    {
+                        types[j] = typeof(decimal);
+
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                if (this.types != types)
+                {
+                    this.types = types;
+                }
+
+                for (int j = 0; j < cmdSplitted[i].Length; j++)
+                {
+
+                    if (cmdSplitted[i][j] == '.')
+                    {
+                        cmdSplitted[i] = cmdSplitted[i].Replace(".", ",");
+                    }
+                }
+
+                if (decimal.TryParse(cmdSplitted[i], out parseDecimal))
+                {
+                    if (types[i - 1] == typeof(bool))
+                    {
+                        bool parseBool = false;
+                        if (parseDecimal == 1)
+                        {
+                            parseBool = true;
+                        }
+                        else if (parseDecimal == 0)
+                        {
+                            parseBool = false;
+                        }
+
+                        if (parseDecimal >= 0)
+                        {
+                            Args.Add(parseBool);
+                        }
+                    }
+                    else if (types[i - 1] == typeof(string))
+                    {
+                        Args.Add(parseDecimal.ToString());
+                    }
+                    else if (types[i - 1] == typeof(decimal))
+                    {
+                        Args.Add(parseDecimal);
+                    }
+                }
+                else if (types[i - 1] == typeof(string))
+                {
+                    Args.Add(cmdSplitted[i]);
+                }
+                else if (types[i - 1] == typeof(bool))
+                {
+                    bool parseBool = false;
+
+                    if (bool.TryParse(cmdSplitted[i], out parseBool))
+                    {
+                        Args.Add(parseBool);
+                    }
+
+                }
+                else
+                {
+                    AddError("Не известный тип данных передан в списке по индексу " + i);
+                }
+            }
+
+
+
+
             for (int i = 0; i < Args.Count; i++)
             {
-                int integerArg = 0;
-                bool boolArg;
-
-                if (bool.TryParse(Args[i].ToString(), out boolArg))
+                if (Args[i].GetType() == typeof(bool))
                 {
                     booleanArgs.Add((bool)Args[i]);
                 }
-                
-                else if (int.TryParse(Args[i].ToString(), out integerArg))
+
+                if (Args[i].GetType() == typeof(decimal))
                 {
-                    intArgs.Add(integerArg);
+                    decimalArgs.Add((decimal)Args[i]);
                 }
 
-                else if (Args[i].GetType() == typeof(string))
+                if (Args[i].GetType() == typeof(string))
                 {
                     stringArgs.Add(Args[i].ToString());
                 }
-
             }
+
+            for (int i = 0; i < types.Count && Args.Count == needArgumentsLength; i++)
+            {
+                if (Args[i].GetType() != types[i])
+                {
+                    AddDevelopError($"Не тот тип данных передан в аргументе по индексу {i}");
+                }
+            }
+            end = true;
         }
 
         //Function for check errors
         //Функция для проверки оишбок
         public bool CheckErrors()
         {
-            //Check args length
-            //Проверяем длинну аргументов
-            if (argumentsLength < needArgumentsLength)
+            bool isError = false;
+
+            if (GetNewErrors(true).Length > 0)
             {
-                AddError($"Добавьте {needArgumentsLength - argumentsLength} аргументов");
-            }
-            else if (argumentsLength > needArgumentsLength)
-            {
-                AddError($"Удалите {argumentsLength - needArgumentsLength} аргументов");
+                isError = true;
             }
             else
             {
-                return false;
+                isError = false;
             }
-            return true;
+
+            return isError;
         }
 
         //Add new error into lists of errors
@@ -153,42 +210,44 @@ namespace CommandCore
             Error error = new Error(text);
             AllErrors.Add(error);
             NewErrors.Add(error);
-            onError(error);
         }
         public void AddDevelopError(string text)
         {
             Error error = new DevelopError(text);
             AllErrors.Add(error);
             NewErrors.Add(error);
-            onDevelopError(error);
         }
-        public Command(string cmd)
+        public void OnInitializeOnErrors()
         {
-            DefaultInit(cmd);
+            foreach (Error error in AllErrors)
+            {
+                if (error is DevelopError)
+                {
+                    onDevelopError(error);
+                }
+                else if (error is Error)
+                {
+                    onError(error);
+                }
+            }
+
+        }
+        public Command(string cmd, List<Type> types)
+        {
+            this.types = types;
+            DefaultInit(cmd, this.types);
         }
 
         //Constructor 2
         //Конструктор 2
-        public Command(string cmd, int needArgumentsLength)
+        public Command(string cmd, int needArgumentsLength, List<Type> types)
         {
             this.needArgumentsLength = needArgumentsLength;
+            this.types = types;
 
-            DefaultInit(cmd);
+            DefaultInit(cmd, this.types);
         }
 
-        //Get value from "intArgs"
-        //Получаем значени из "intArgs"
-        public int GetValueFromIntArgs(int index)
-        {
-            if (intArgs.Count - 1 >= index)
-            {
-                return intArgs[index];
-            }
-            else
-            {
-                return 0;
-            }
-        }
         //Get value from "stringArgs"
         //Получаем значени из "stringArgs"
         public string GetValueFromStringArgs(int index)
@@ -200,6 +259,19 @@ namespace CommandCore
             else
             {
                 return " ";
+            }
+        }
+        //Get value from "decimalArgs"
+        //Получаем значени из "decimalArgs"
+        public decimal GetValueFromDecimalArgs(int index)
+        {
+            if (stringArgs.Count - 1 >= index)
+            {
+                return decimalArgs[index];
+            }
+            else
+            {
+                return 0;
             }
         }
         //Get value from "Args"
@@ -350,5 +422,5 @@ namespace CommandCore
         {
 
         }
-    } 
+    }
 }
